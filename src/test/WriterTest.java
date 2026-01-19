@@ -198,4 +198,38 @@ class WriterTest {
         assertFalse(reader1.isAlive());
         assertFalse(reader2.isAlive());
     }
+    
+    @Test
+    @DisplayName("Pisarz powinien zatrzymać się gdy running jest false")
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    void writerShouldStopWhenRunningIsFalse() throws InterruptedException {
+        Writer writer = new Writer(library, "Pisarz-1", 50, 100, 10);
+        
+        writer.start();
+        assertTrue(writer.isRunning());
+        Thread.sleep(200);
+        
+        writer.stopRunning();
+        assertFalse(writer.isRunning());
+        
+        writer.join(2000);
+        assertFalse(writer.isAlive());
+    }
+    
+    @Test
+    @DisplayName("Pisarz nie powinien wystartować gdy running jest false przed startem")
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    void writerShouldNotRunWhenStoppedBeforeStart() throws InterruptedException {
+        Writer writer = new Writer(library, "Pisarz-1", 50, 100, 10);
+        
+        writer.stopRunning();
+        assertFalse(writer.isRunning());
+        
+        writer.start();
+        Thread.sleep(200);
+        
+        writer.join(1000);
+        assertFalse(writer.isAlive());
+        assertEquals(0, library.getActiveWriters());
+    }
 }

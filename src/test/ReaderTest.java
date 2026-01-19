@@ -176,4 +176,38 @@ class ReaderTest {
         
         assertFalse(reader.isAlive());
     }
+    
+    @Test
+    @DisplayName("Czytelnik powinien zatrzymać się gdy running jest false")
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    void readerShouldStopWhenRunningIsFalse() throws InterruptedException {
+        Reader reader = new Reader(library, "Czytelnik-1", 50, 100, 10);
+        
+        reader.start();
+        assertTrue(reader.isRunning());
+        Thread.sleep(200);
+        
+        reader.stopRunning();
+        assertFalse(reader.isRunning());
+        
+        reader.join(2000);
+        assertFalse(reader.isAlive());
+    }
+    
+    @Test
+    @DisplayName("Czytelnik nie powinien wystartować gdy running jest false przed startem")
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    void readerShouldNotRunWhenStoppedBeforeStart() throws InterruptedException {
+        Reader reader = new Reader(library, "Czytelnik-1", 50, 100, 10);
+        
+        reader.stopRunning();
+        assertFalse(reader.isRunning());
+        
+        reader.start();
+        Thread.sleep(200);
+        
+        reader.join(1000);
+        assertFalse(reader.isAlive());
+        assertEquals(0, library.getActiveReaders());
+    }
 }

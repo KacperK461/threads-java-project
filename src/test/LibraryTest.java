@@ -655,4 +655,32 @@ class LibraryTest {
         assertTrue(writerEntered.get());
         assertTrue(library.isEmpty());
     }
+    
+    @Test
+    @DisplayName("stopReading powinien wywołać signalNext z pustą kolejką")
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    void stopReadingShouldCallSignalNextWithEmptyQueue() throws InterruptedException {
+        library.startReading("Czytelnik-1");
+        assertEquals(1, library.getActiveReaders());
+        
+        library.stopReading("Czytelnik-1");
+        
+        assertEquals(0, library.getActiveReaders());
+        assertEquals(0, library.getQueueSize());
+        assertTrue(library.isEmpty());
+    }
+    
+    @Test
+    @DisplayName("stopWriting powinien wywołać signalNext z pustą kolejką")
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    void stopWritingShouldCallSignalNextWithEmptyQueue() throws InterruptedException {
+        library.startWriting("Pisarz-1");
+        assertEquals(1, library.getActiveWriters());
+        
+        library.stopWriting("Pisarz-1");
+        
+        assertEquals(0, library.getActiveWriters());
+        assertEquals(0, library.getQueueSize());
+        assertTrue(library.isEmpty());
+    }
 }
