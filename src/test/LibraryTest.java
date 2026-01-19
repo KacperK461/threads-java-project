@@ -683,4 +683,220 @@ class LibraryTest {
         assertEquals(0, library.getQueueSize());
         assertTrue(library.isEmpty());
     }
+    
+    @Test
+    @DisplayName("canReaderEnter powinien zwrócić false gdy pisarz jest przed czytelnikiem w kolejce")
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
+    void canReaderEnterShouldReturnFalseWhenWriterIsBeforeReaderInQueue() throws InterruptedException {
+        CountDownLatch reader1Entered = new CountDownLatch(1);
+        CountDownLatch writerWaiting = new CountDownLatch(1);
+        CountDownLatch reader2Waiting = new CountDownLatch(1);
+        AtomicBoolean reader2Entered = new AtomicBoolean(false);
+        
+        Thread reader1 = new Thread(() -> {
+            library.startReading("Czytelnik-1");
+            reader1Entered.countDown();
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            library.stopReading("Czytelnik-1");
+        });
+        
+        Thread writer1 = new Thread(() -> {
+            try {
+                reader1Entered.await();
+                Thread.sleep(50);
+                writerWaiting.countDown();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            library.startWriting("Pisarz-1");
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            library.stopWriting("Pisarz-1");
+        });
+        
+        Thread reader2 = new Thread(() -> {
+            try {
+                writerWaiting.await();
+                Thread.sleep(50);
+                reader2Waiting.countDown();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            library.startReading("Czytelnik-2");
+            reader2Entered.set(true);
+            library.stopReading("Czytelnik-2");
+        });
+        
+        reader1.start();
+        writer1.start();
+        reader2.start();
+        
+        reader2Waiting.await(3000, TimeUnit.MILLISECONDS);
+        Thread.sleep(200);
+        
+        assertFalse(reader2Entered.get(), "Czytelnik-2 nie powinien wejść gdy Pisarz-1 jest przed nim w kolejce");
+        
+        reader1.join(5000);
+        writer1.join(5000);
+        reader2.join(5000);
+        
+        assertTrue(reader2Entered.get(), "Czytelnik-2 powinien wejść po zakończeniu przez pisarza");
+    }
+    
+    @Test
+    @DisplayName("canReaderEnter powinien zwrócić true dla ostatniego elementu w kolejce")
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    void canReaderEnterShouldReturnTrueForLastElementInQueue() throws InterruptedException {
+        CountDownLatch allReadersEntered = new CountDownLatch(5);
+        List<Thread> threads = new ArrayList<>();
+        
+        for (int i = 1; i <= 5; i++) {
+            final int id = i;
+            Thread t = new Thread(() -> {
+                library.startReading("Czytelnik-" + id);
+                allReadersEntered.countDown();
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                library.stopReading("Czytelnik-" + id);
+            });
+            threads.add(t);
+            t.start();
+            Thread.sleep(10);
+        }
+        
+        assertTrue(allReadersEntered.await(3, TimeUnit.SECONDS));
+        
+        for (Thread t : threads) {
+            t.join(2000);
+        }
+    }
+    
+    @Test
+    @DisplayName("canWriterEnter powinien zwrócić false gdy inny pisarz jest aktywny")
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    void canWriterEnterShouldReturnFalseWhenOtherWriterIsActive() throws InterruptedException {
+        CountDownLatch writer1Entered = new CountDownLatch(1);
+        AtomicBoolean writer2Entered = new AtomicBoolean(false);
+        
+        Thread writer1 = new Thread(() -> {
+            library.startWriting("Pisarz-1");
+            writer1Entered.countDown();
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            library.stopWriting("Pisarz-1");
+        });
+        
+        Thread writer2 = new Thread(() -> {
+            try {
+                writer1Entered.await();
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            library.startWriting("Pisarz-2");
+            writer2Entered.set(true);
+            library.stopWriting("Pisarz-2");
+        });
+        
+        writer1.start();
+        writer2.start();
+        
+        writer1Entered.await(2000, TimeUnit.MILLISECONDS);
+        Thread.sleep(200);
+        
+        assertFalse(writer2Entered.get());
+        
+        writer1.join(3000);
+        writer2.join(3000);
+        
+        assertTrue(writer2Entered.get());
+    }
+    
+    @Test
+    @DisplayName("canWriterEnter powinien zwrócić false gdy czytelnicy są aktywni")
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    void canWriterEnterShouldReturnFalseWhenReadersAreActive() throws InterruptedException {
+        CountDownLatch readersEntered = new CountDownLatch(2);
+        AtomicBoolean writerEntered = new AtomicBoolean(false);
+        
+        Thread reader1 = new Thread(() -> {
+            library.startReading("Czytelnik-1");
+            readersEntered.countDown();
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            library.stopReading("Czytelnik-1");
+        });
+        
+        Thread reader2 = new Thread(() -> {
+            library.startReading("Czytelnik-2");
+            readersEntered.countDown();
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            library.stopReading("Czytelnik-2");
+        });
+        
+        Thread writer = new Thread(() -> {
+            try {
+                readersEntered.await();
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            library.startWriting("Pisarz-1");
+            writerEntered.set(true);
+            library.stopWriting("Pisarz-1");
+        });
+        
+        reader1.start();
+        reader2.start();
+        writer.start();
+        
+        readersEntered.await(2000, TimeUnit.MILLISECONDS);
+        Thread.sleep(200);
+        
+        assertFalse(writerEntered.get());
+        
+        reader1.join(3000);
+        reader2.join(3000);
+        writer.join(3000);
+        
+        assertTrue(writerEntered.get());
+    }
+    
+    @Test
+    @DisplayName("canWriterEnter powinien zwrócić true gdy pisarz jest pierwszy i nikt nie jest aktywny")
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    void canWriterEnterShouldReturnTrueWhenFirstAndNoOneActive() throws InterruptedException {
+        AtomicBoolean writerEntered = new AtomicBoolean(false);
+        
+        Thread writer = new Thread(() -> {
+            library.startWriting("Pisarz-1");
+            writerEntered.set(true);
+            library.stopWriting("Pisarz-1");
+        });
+        
+        writer.start();
+        writer.join(2000);
+        
+        assertTrue(writerEntered.get());
+    }
 }

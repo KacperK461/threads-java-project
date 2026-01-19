@@ -232,4 +232,21 @@ class WriterTest {
         assertFalse(writer.isAlive());
         assertEquals(0, library.getActiveWriters());
     }
+    
+    @Test
+    @DisplayName("Pisarz powinien zatrzymać się gdy running jest false i wątek przerwany")
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    void writerShouldStopWhenRunningIsFalseAndInterrupted() throws InterruptedException {
+        Writer writer = new Writer(library, "Pisarz-1", 50, 100, 10);
+        
+        writer.start();
+        Thread.sleep(200);
+        
+        writer.stopRunning();
+        writer.interrupt();
+        
+        writer.join(2000);
+        assertFalse(writer.isAlive());
+        assertFalse(writer.isRunning());
+    }
 }

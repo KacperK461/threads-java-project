@@ -210,4 +210,21 @@ class ReaderTest {
         assertFalse(reader.isAlive());
         assertEquals(0, library.getActiveReaders());
     }
+    
+    @Test
+    @DisplayName("Czytelnik powinien zatrzymać się gdy running jest false i wątek przerwany")
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    void readerShouldStopWhenRunningIsFalseAndInterrupted() throws InterruptedException {
+        Reader reader = new Reader(library, "Czytelnik-1", 50, 100, 10);
+        
+        reader.start();
+        Thread.sleep(200);
+        
+        reader.stopRunning();
+        reader.interrupt();
+        
+        reader.join(2000);
+        assertFalse(reader.isAlive());
+        assertFalse(reader.isRunning());
+    }
 }
