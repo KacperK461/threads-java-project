@@ -249,4 +249,20 @@ class WriterTest {
         assertFalse(writer.isAlive());
         assertFalse(writer.isRunning());
     }
+    
+    @Test
+    @DisplayName("Pisarz powinien zatrzymać się gdy running jest false bez przerwania")
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    void writerShouldStopWhenRunningIsFalseWithoutInterrupt() throws InterruptedException {
+        Writer writer = new Writer(library, "Pisarz-1", 50, 100, 10);
+        
+        writer.start();
+        Thread.sleep(200);
+        
+        writer.setRunning(false);
+        
+        writer.join(3000);
+        assertFalse(writer.isAlive());
+        assertFalse(writer.isRunning());
+    }
 }

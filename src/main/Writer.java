@@ -50,6 +50,10 @@ public class Writer extends Thread {
         this.interrupt();
     }
     
+    public void setRunning(boolean running) {
+        this.running = running;
+    }
+    
     public boolean isRunning() {
         return running;
     }

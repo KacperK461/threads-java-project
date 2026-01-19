@@ -26,7 +26,6 @@ public class Main {
             System.exit(1);
         }
         
-        // Wyświetlenie parametrów
         System.out.println("╔════════════════════════════════════════════════════════╗");
         System.out.println("║     PROBLEM CZYTELNIKÓW I PISARZY - DEMONSTRACJA       ║");
         System.out.println("╠════════════════════════════════════════════════════════╣");
